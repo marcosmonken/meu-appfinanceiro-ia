@@ -1,1 +1,20 @@
 node_modules
+# Dependências
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Arquivos do macOS
+.DS_Store
+**/.DS_Store
+
+# Informações sensíveis
+.env
+.env.*
+*.keystore
+*.jks
+*.p12
+*.mobileprovision

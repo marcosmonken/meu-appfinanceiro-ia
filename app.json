@@ -5,12 +5,30 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/comunista.png",
     "android": {
-      "package": "com.meufinanceiro.pessoal"
-    },
-    "plugins": [
-      "expo-sqlite"
+      "package": "com.meufinanceiro.pessoal",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/comunista.png",
+        "backgroundColor": "#080F1F"
+      }
+    },"plugins": [
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 300,
+          "resizeMode": "contain",
+          "backgroundColor": "#D50000",
+          "dark": {
+            "image": "./assets/splash.png",
+            "backgroundColor": "#D50000"
+          }
+        }
+      ]
     ],
+   
     "extra": {
       "eas": {
         "projectId": "869bc0cc-7a92-403c-8ec2-1533c9715346"
