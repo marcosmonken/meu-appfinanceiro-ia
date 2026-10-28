@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Meu Financeiro IA",
+    "slug": "meu-financeiro-ia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.meufinanceiro.pessoal"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "869bc0cc-7a92-403c-8ec2-1533c9715346"
+      }
+    }
+  }
+}
