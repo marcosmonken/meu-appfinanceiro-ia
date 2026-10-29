@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 
 const BG = '#090F1C', PANEL = '#142036', BLUE = '#4D91FF', MUTED = '#A5B3CA', WHITE = '#F4F7FF';
 const categories = ['Alimentação', 'Mercado', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Compras', 'Salário', 'Freelance', 'Outros'];
@@ -36,6 +39,66 @@ function AppContent() {
   const [date, setDate] = useState(today());
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('todas');
+  const [backupBusy, setBackupBusy] = useState(false);
+  const exportBackup = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const records = await db.getAllAsync('SELECT id,type,amount_cents,category,description,date,created_at FROM transactions ORDER BY id');
+      const payload = { format: 'mybank-transactions', version: 1, exported_at: new Date().toISOString(), transactions: records };
+      const path = `${FileSystem.cacheDirectory}mybank-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(payload, null, 2), { encoding: FileSystem.EncodingType.UTF8 });
+      if (!(await Sharing.isAvailableAsync())) throw new Error('Compartilhamento de arquivos indisponível neste aparelho.');
+      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Salvar backup do MY BANK', UTI: 'public.json' });
+      Alert.alert('Backup preparado', 'Salve o arquivo em um local privado fora do celular. O arquivo contém seus dados financeiros sem criptografia.');
+    } catch (e) { Alert.alert('Erro ao exportar backup', String(e.message)); }
+    finally { setBackupBusy(false); }
+  };
+  const restoreBackup = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) throw new Error('Nenhum arquivo selecionado.');
+      if (asset.size && asset.size > 10 * 1024 * 1024) throw new Error('Arquivo maior que o limite de 10 MB.');
+      const raw = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      if (raw.length > 10 * 1024 * 1024) throw new Error('Arquivo muito grande.');
+      const data = JSON.parse(raw);
+      if (data?.format !== 'mybank-transactions' || data.version !== 1 || !Array.isArray(data.transactions)) throw new Error('Formato de backup inválido ou incompatível.');
+      if (data.transactions.length > 100000) throw new Error('Backup com registros demais.');
+      const ids = new Set();
+      for (const r of data.transactions) {
+        if (!r || !Number.isSafeInteger(r.id) || r.id <= 0 || ids.has(r.id) ||
+            !['receita','despesa'].includes(r.type) || !Number.isSafeInteger(r.amount_cents) || r.amount_cents <= 0 ||
+            typeof r.category !== 'string' || !r.category.trim() || r.category.length > 200 ||
+            typeof r.description !== 'string' || !r.description.trim() || r.description.length > 2000 ||
+            typeof r.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.date) ||
+            Number.isNaN(Date.parse(`${r.date}T12:00:00`)) || new Date(`${r.date}T12:00:00`).toISOString().slice(0, 10) !== r.date ||
+            typeof r.created_at !== 'string' || r.created_at.length > 100) throw new Error('O backup contém registros inválidos. Nenhum dado foi alterado.');
+        ids.add(r.id);
+      }
+      Alert.alert('Restaurar backup?', `O arquivo contém ${data.transactions.length} lançamento(s). Isso SUBSTITUIRÁ todos os lançamentos atuais. Exporte um backup dos dados atuais antes de continuar.`, [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Substituir dados', style: 'destructive', onPress: async () => {
+          setBackupBusy(true);
+          try {
+            await db.withExclusiveTransactionAsync(async tx => {
+              await tx.runAsync('DELETE FROM transactions');
+              for (const r of data.transactions) {
+                await tx.runAsync('INSERT INTO transactions (id,type,amount_cents,category,description,date,created_at) VALUES (?,?,?,?,?,?,?)', r.id, r.type, r.amount_cents, r.category, r.description, r.date, r.created_at);
+              }
+            });
+            await refresh();
+            Alert.alert('Restauração concluída', `${data.transactions.length} lançamento(s) recuperado(s).`);
+          } catch (e) { Alert.alert('Erro ao restaurar', `Os dados anteriores foram preservados se a transação falhou. Detalhes: ${String(e.message)}`); }
+          finally { setBackupBusy(false); }
+        } }
+      ]);
+    } catch (e) { Alert.alert('Backup não restaurado', String(e.message)); }
+    finally { setBackupBusy(false); }
+  };
   const refresh = useCallback(async () => {
     try { setItems(await db.getAllAsync('SELECT * FROM transactions ORDER BY date DESC, id DESC')); }
     catch(e) { Alert.alert('Erro ao carregar', String(e.message)); }
@@ -75,6 +138,9 @@ function AppContent() {
       <Text style={styles.section}>Resumo do mês · {month.split('-').reverse().join('/')}</Text>
       <View style={styles.metrics}><View style={styles.metric}><Text style={styles.sub}>↑ Receitas</Text><Text style={[styles.metricValue,{color:'#62D6A5'}]}>{brl(income)}</Text></View><View style={styles.metric}><Text style={styles.sub}>↓ Despesas</Text><Text style={[styles.metricValue,{color:'#FF8C9A'}]}>{brl(expense)}</Text></View></View>
       <Button label="+ Novo lançamento" onPress={() => setModal(true)}/>
+      <Text style={styles.section}>Segurança dos dados</Text>
+      <Button label={backupBusy ? 'Aguarde...' : '💾 Exportar backup'} secondary onPress={backupBusy ? undefined : exportBackup}/>
+      <Button label={backupBusy ? 'Aguarde...' : '📥 Restaurar backup'} secondary onPress={backupBusy ? undefined : restoreBackup}/>
       <Text style={styles.section}>Últimas movimentações</Text>
       {items.length ? items.slice(0,8).map(row) : <Text style={styles.empty}>Nenhum lançamento ainda. Cadastre sua primeira receita ou despesa.</Text>}
       <Text style={styles.hint}>Dica: pressione uma movimentação por alguns segundos para excluí-la.</Text>

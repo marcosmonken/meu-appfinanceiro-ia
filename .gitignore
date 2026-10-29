@@ -18,3 +18,7 @@ web-build/
 *.jks
 *.p12
 *.mobileprovision
+.expo/
+.expo/
+
+dist-test/
