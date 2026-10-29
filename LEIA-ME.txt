@@ -1,0 +1,18 @@
+MY BANK — HEXTECH EDITION 1.2 (prévia)
+
+1. Confirme que está na branch desenvolvimento-mybank e que já exportou backup dos dados.
+2. Copie App.js, configurar_identidade.js e a pasta assets para a raiz do projeto, mantendo os demais arquivos.
+3. Execute: node configurar_identidade.js
+4. Execute: npx expo-doctor
+5. Execute: npx expo export --platform android --output-dir dist-test
+6. Se passar, execute: git status --short (verifique os arquivos antes de registrar).
+7. Execute: npx eas-cli@latest build --platform android --profile preview
+8. Instale o APK por cima do anterior. NÃO desinstale o aplicativo existente.
+
+OBSERVAÇÕES:
+- Backup e restauração continuam no menu Início.
+- Quests usa os lançamentos reais; Skills, Builds e Bosses são telas preparatórias.
+- XP usa contagem de lançamentos apenas como marcador visual, sem regras definitivas.
+- A separação entre Pessoal e Artemfoco ainda NÃO existe no banco.
+- O ícone adaptativo pode ter margens/corte no Android; revisar após teste.
+- O script salva app.json.antes-mybank.bak, que não deve ser enviado ao Git.

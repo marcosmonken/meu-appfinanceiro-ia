@@ -1,26 +1,27 @@
 {
   "expo": {
-    "name": "Meu Financeiro IA",
+    "name": "MY BANK",
     "slug": "meu-financeiro-ia",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "icon": "./assets/comunista.png",
+    "icon": "./assets/Iconelol.png",
     "android": {
       "package": "com.meufinanceiro.pessoal",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/comunista.png",
-        "backgroundColor": "#080F1F"
+        "foregroundImage": "./assets/Iconelol.png",
+        "backgroundColor": "#0A141D"
       }
-    },"plugins": [
+    },
+    "plugins": [
       "expo-sqlite",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash.png",
-          "imageWidth": 300,
+          "image": "./assets/Mybanklol.png",
+          "imageWidth": 240,
           "resizeMode": "contain",
-          "backgroundColor": "#D50000",
+          "backgroundColor": "#0A141D",
           "dark": {
             "image": "./assets/splash.png",
             "backgroundColor": "#D50000"
@@ -28,11 +29,15 @@
         }
       ]
     ],
-   
     "extra": {
       "eas": {
         "projectId": "869bc0cc-7a92-403c-8ec2-1533c9715346"
       }
+    },
+    "splash": {
+      "image": "./assets/Mybanklol.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A141D"
     }
   }
 }
